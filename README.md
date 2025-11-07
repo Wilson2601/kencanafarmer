@@ -1,4 +1,4 @@
-#KencanaFarmer
+# kencanfarmer 
 An app that can assist farmers with agricultural management.
 
 #Problem 
