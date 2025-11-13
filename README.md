@@ -1,14 +1,11 @@
-# kencanfarmer 
-An app that can assist farmers with agricultural management.
 
-# Problem 
-1. Farmers occasionally neglect to water their plants.
-2. 2. They rely on their experience to determine when harvest is possible.
-3. Doesn't have a harvest prediction, reminder, or recording app. 
+  # Agriculture Management App
 
-# Functions 
-1. Crop Management
-2. Watering & Fertilizer Reminder
-3. Weather Forecast
-4. Growth Photo Record
-5. Harvest Prediction
+  This is a code bundle for Agriculture Management App. The original project is available at https://www.figma.com/design/PriAJRd3MCNqWzsvwYoOjF/Agriculture-Management-App.
+
+  ## Running the code
+
+  Run `npm i` to install the dependencies.
+
+  Run `npm run dev` to start the development server.
+  
