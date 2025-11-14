@@ -42,11 +42,9 @@ export default function App() {
 
   return (
     <div className="min-h-screen bg-green-50">
-      {/* Main Content */}
       <main className="max-w-md mx-auto bg-white shadow-xl min-h-screen relative">
         {renderPage()}
 
-        {/* Bottom Navigation */}
         <nav className="fixed bottom-0 left-0 right-0 max-w-md mx-auto bg-white border-t border-green-200 shadow-lg">
           <div className="grid grid-cols-6 gap-1 p-2">
             {navItems.map((item) => {
@@ -57,21 +55,5 @@ export default function App() {
                   key={item.id}
                   onClick={() => setCurrentPage(item.id)}
                   className={`flex flex-col items-center justify-center py-2 px-1 rounded-lg transition-all ${
-                    isActive
-                      ? 'bg-green-100 text-green-700'
-                      : 'text-green-600 hover:bg-green-50'
+                    isActive ? 'bg-green-100 text-green-700' : 'text-green-600 hover:bg-green-50'
                   }`}
-                >
-                  <Icon className={`w-6 h-6 mb-1 ${isActive ? 'text-green-700' : 'text-green-600'}`} />
-                  <span className={`text-xs ${isActive ? 'text-green-700' : 'text-green-600'}`}>
-                    {item.label}
-                  </span>
-                </button>
-              );
-            })}
-          </div>
-        </nav>
-      </main>
-    </div>
-  );
-}
