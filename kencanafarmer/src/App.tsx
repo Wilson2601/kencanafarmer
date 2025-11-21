@@ -57,3 +57,15 @@ export default function App() {
                   className={`flex flex-col items-center justify-center py-2 px-1 rounded-lg transition-all ${
                     isActive ? 'bg-green-100 text-green-700' : 'text-green-600 hover:bg-green-50'
                   }`}
+                >
+                  <Icon size={20} />
+                  <span className="text-xs">{item.label}</span>
+                </button>
+              );
+            })}
+          </div>
+        </nav>
+      </main>
+    </div>
+  );
+}
