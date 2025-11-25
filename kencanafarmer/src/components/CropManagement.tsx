@@ -1,100 +1,142 @@
 import { Card } from "./ui/card";
 import { Button } from "./ui/button";
-import { Plus, Apple, CircleDot } from "lucide-react";
+import { Plus, Apple, Trash2, Edit2, MapPin } from "lucide-react";
 import { ImageWithFallback } from "./figma/ImageWithFallback";
-import { useState } from "react";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "./ui/dialog";
+import { useEffect, useState, useRef } from "react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "./ui/dialog";
 import { Input } from "./ui/input";
 import { Label } from "./ui/label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "./ui/select";
-
-interface Crop {
-  id: number;
-  name: string;
-  type: string;
-  section: string;
-  planted: string;
-  status: 'healthy' | 'attention' | 'ready';
-  image: string;
-}
+// select component not used here
+import { Crop } from "../types/crop";
+import { loadCrops, addCrop, updateCrop, deleteCrop } from "../services/storage";
+// harvest prediction handled elsewhere; do not import here
 
 export function CropManagement() {
-  const [crops, setCrops] = useState<Crop[]>([
-    {
-      id: 1,
-      name: 'Apple Trees',
-      type: 'Apple',
-      section: 'Section A',
-      planted: 'Jan 2025',
-      status: 'healthy',
-      image: 'https://images.unsplash.com/photo-1634630486820-d2eae27becbf?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxhcHBsZSUyMHRyZWUlMjBmcnVpdHxlbnwxfHx8fDE3NjE4OTg1Nzd8MA&ixlib=rb-4.1.0&q=80&w=1080&utm_source=figma&utm_medium=referral'
-    },
-    {
-      id: 2,
-      name: 'Orange Grove',
-      type: 'Orange',
-      section: 'Section B',
-      planted: 'Mar 2025',
-      status: 'attention',
-      image: 'https://images.unsplash.com/photo-1741012253484-43b5b9b99491?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxvcmFuZ2UlMjBjaXRydXMlMjBmYXJtfGVufDF8fHx8MTc2MTg5ODU3N3ww&ixlib=rb-4.1.0&q=80&w=1080&utm_source=figma&utm_medium=referral'
-    },
-    {
-      id: 3,
-      name: 'Mango Orchard',
-      type: 'Mango',
-      section: 'Section C',
-      planted: 'Feb 2025',
-      status: 'ready',
-      image: 'https://images.unsplash.com/photo-1689001819501-416754401ab1?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxtYW5nbyUyMHRyZWUlMjB0cm9waWNhbHxlbnwxfHx8fDE3NjE4OTg1Nzh8MA&ixlib=rb-4.1.0&q=80&w=1080&utm_source=figma&utm_medium=referral'
-    }
-  ]);
+  const [crops, setCrops] = useState<Crop[]>([]);
 
+  // Add / Edit dialog state
   const [open, setOpen] = useState(false);
-  const [newCrop, setNewCrop] = useState({
-    name: '',
-    type: '',
-    section: '',
-    planted: ''
-  });
+  const [editing, setEditing] = useState<Crop | null>(null);
+  const [form, setForm] = useState({ name: "", variety: "", plantingDate: "", location: "", photos: [] as string[] });
+  const [cameraOpen, setCameraOpen] = useState(false);
+  const videoRef = useRef<HTMLVideoElement | null>(null);
+  const streamRef = useRef<MediaStream | null>(null);
 
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'healthy':
-        return 'bg-green-100 text-green-700';
-      case 'attention':
-        return 'bg-yellow-100 text-yellow-700';
-      case 'ready':
-        return 'bg-blue-100 text-blue-700';
-      default:
-        return 'bg-gray-100 text-gray-700';
-    }
-  };
+  useEffect(() => {
+    setCrops(loadCrops());
+  }, []);
 
-  const getStatusText = (status: string) => {
-    switch (status) {
-      case 'healthy':
-        return 'Healthy';
-      case 'attention':
-        return 'Needs Care';
-      case 'ready':
-        return 'Ready';
-      default:
-        return status;
-    }
-  };
+  // (status helpers removed — `Crop` type doesn't include a status field)
 
-  const handleAddCrop = () => {
-    if (newCrop.name && newCrop.type && newCrop.section && newCrop.planted) {
-      setCrops([...crops, {
-        id: crops.length + 1,
-        ...newCrop,
-        status: 'healthy',
-        image: 'https://images.unsplash.com/photo-1708057986191-9c0337c2f5c6?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxmcnVpdCUyMG9yY2hhcmQlMjBmYXJtfGVufDF8fHx8MTc2MTg5ODU3N3ww&ixlib=rb-4.1.0&q=80&w=1080&utm_source=figma&utm_medium=referral'
-      }]);
-      setNewCrop({ name: '', type: '', section: '', planted: '' });
+  function openAddDialog() {
+    setEditing(null);
+    setForm({ name: "", variety: "", plantingDate: new Date().toISOString().slice(0,10), location: "", photos: [] });
+    setOpen(true);
+  }
+
+  function openEditDialog(c: Crop) {
+    setEditing(c);
+    setForm({
+      name: c.name || "",
+      variety: c.variety || "",
+      plantingDate: c.plantingDate || new Date().toISOString().slice(0,10),
+      location: c.location || "",
+      photos: c.photos ? [...c.photos] : [],
+    });
+    setOpen(true);
+  }
+
+  function handleSubmit() {
+    if (!form.name.trim()) return;
+
+    if (editing) {
+      const updated: Crop = {
+        ...editing,
+        name: form.name.trim(),
+        variety: form.variety || undefined,
+        plantingDate: form.plantingDate,
+        // preserve existing expectedDaysToHarvest; prediction handled elsewhere
+        photos: form.photos && form.photos.length ? form.photos : editing.photos,
+        location: form.location || editing.location,
+      };
+      updateCrop(updated);
+      setCrops(loadCrops());
+      setEditing(null);
       setOpen(false);
+      stopCamera();
+      return;
     }
-  };
+
+    const newC: Crop = {
+      id: crypto.randomUUID(),
+      name: form.name.trim(),
+      variety: form.variety || undefined,
+      plantingDate: form.plantingDate,
+      photos: form.photos && form.photos.length ? form.photos : [],
+      location: form.location || undefined,
+    };
+    addCrop(newC);
+    setCrops(loadCrops());
+    setOpen(false);
+    stopCamera();
+  }
+
+  async function startCamera() {
+    if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+      alert('Camera not supported in this browser');
+      return;
+    }
+
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' }, audio: false });
+      streamRef.current = stream;
+      if (videoRef.current) {
+        videoRef.current.srcObject = stream;
+        await videoRef.current.play();
+      }
+      setCameraOpen(true);
+    } catch (err) {
+    console.error('Failed to open camera', err);
+    alert('Unable to access camera. Check browser permissions');
+    }
+  }
+
+  function stopCamera() {
+    setCameraOpen(false);
+    try {
+      if (videoRef.current) {
+        videoRef.current.pause();
+        videoRef.current.srcObject = null;
+      }
+      if (streamRef.current) {
+        streamRef.current.getTracks().forEach((t) => t.stop());
+        streamRef.current = null;
+      }
+    } catch (e) {
+      // ignore
+    }
+  }
+
+  function captureFromCamera() {
+    const video = videoRef.current;
+    if (!video) return;
+    const w = video.videoWidth || 1280;
+    const h = video.videoHeight || 720;
+    const canvas = document.createElement('canvas');
+    canvas.width = w;
+    canvas.height = h;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+    ctx.drawImage(video, 0, 0, w, h);
+    const dataUrl = canvas.toDataURL('image/jpeg', 0.8);
+    setForm({ ...form, photos: [...(form.photos || []), dataUrl] });
+  }
+
+  function handleDelete(id: string) {
+    if (!confirm("Delete this crop?")) return;
+    deleteCrop(id);
+    setCrops(loadCrops());
+  }
 
   return (
     <div className="p-4 pb-24 bg-green-50 min-h-screen">
@@ -104,69 +146,146 @@ export function CropManagement() {
           <h1 className="text-green-800">My Crops</h1>
           <p className="text-green-600">{crops.length} crops planted</p>
         </div>
-        <Dialog open={open} onOpenChange={setOpen}>
-          <DialogTrigger asChild>
-            <Button size="lg" className="bg-green-600 hover:bg-green-700 rounded-full h-14 w-14 p-0">
-              <Plus className="w-6 h-6" />
-            </Button>
-          </DialogTrigger>
-          <DialogContent className="max-w-[90%] rounded-lg">
-            <DialogHeader>
-              <DialogTitle>Add New Crop</DialogTitle>
-            </DialogHeader>
-            <div className="space-y-4 py-4">
-              <div>
-                <Label htmlFor="name">Crop Name</Label>
-                <Input
-                  id="name"
-                  placeholder="e.g., Apple Trees"
-                  value={newCrop.name}
-                  onChange={(e) => setNewCrop({ ...newCrop, name: e.target.value })}
-                  className="mt-1"
-                />
+        <div className="flex items-center gap-2">
+          <Button onClick={openAddDialog} size="lg" className="bg-green-600 hover:bg-green-700 rounded-full h-14 w-14 p-0">
+            <Plus className="w-6 h-6" />
+          </Button>
+          <Dialog open={open} onOpenChange={setOpen}>
+            <DialogContent className="max-w-[90%] rounded-lg">
+              <DialogHeader>
+                <DialogTitle>{editing ? "Edit Crop" : "Add New Crop"}</DialogTitle>
+              </DialogHeader>
+              <div className="space-y-4 py-4">
+                <div>
+                  <Label htmlFor="name">Crop Name</Label>
+                  <Input
+                    id="name"
+                    placeholder="e.g., Apple Trees"
+                    value={form.name}
+                    onChange={(e) => setForm({ ...form, name: e.target.value })}
+                    className="mt-1"
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="variety">Variety / Type</Label>
+                  <Input
+                    id="variety"
+                    placeholder="e.g., Fuji"
+                    value={form.variety}
+                    onChange={(e) => setForm({ ...form, variety: e.target.value })}
+                    className="mt-1"
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="planted">Planting Date</Label>
+                  <Input
+                    id="planted"
+                    type="date"
+                    value={form.plantingDate}
+                    onChange={(e) => setForm({ ...form, plantingDate: e.target.value })}
+                    className="mt-1"
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="location">Location (Description)</Label>
+                  <Input
+                    id="location"
+                    placeholder="e.g., North field, row 3, near well"
+                    value={form.location}
+                    onChange={(e) => setForm({ ...form, location: e.target.value })}
+                    className="mt-1"
+                  />
+                </div>
+                {/* photo upload */}
+                <div>
+                  <Label htmlFor="photos">Photos</Label>
+                  <div className="flex items-center gap-2">
+                    <input
+                      id="photos"
+                      type="file"
+                      accept="image/*"
+                      multiple
+                      className="mt-1"
+                      onChange={async (e) => {
+                        const files = e.target.files;
+                        if (!files || files.length === 0) return;
+                        const arr = Array.from(files);
+                        const readFileAsDataURL = (file: File) =>
+                          new Promise<string>((resolve, reject) => {
+                            const fr = new FileReader();
+                            fr.onload = () => resolve(String(fr.result));
+                            fr.onerror = reject;
+                            fr.readAsDataURL(file);
+                          });
+
+                        try {
+                          const dataUrls = await Promise.all(arr.map(readFileAsDataURL));
+                          setForm({ ...form, photos: [...(form.photos || []), ...dataUrls] });
+                        } catch (err) {
+                          console.error("Failed to read files", err);
+                        }
+
+                        // clear input so same file can be chosen again if needed
+                        e.currentTarget.value = "";
+                      }}
+                    />
+                    <button type="button" className="ml-2 px-3 py-1 rounded bg-gray-100" onClick={startCamera}>
+                      Use Camera
+                    </button>
+                  </div>
+
+                  {form.photos && form.photos.length ? (
+                    <div className="mt-2 grid grid-cols-4 gap-2">
+                      {form.photos.map((p, idx) => (
+                        <div key={idx} className="relative border rounded overflow-hidden">
+                          <img src={p} alt={`preview-${idx}`} className="w-full h-24 object-cover" />
+                          <button
+                            className="absolute top-1 right-1 bg-white/80 rounded-full p-1"
+                            onClick={() => {
+                              const copy = [...form.photos];
+                              copy.splice(idx, 1);
+                              setForm({ ...form, photos: copy });
+                            }}
+                          >
+                            ✕
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  ) : null}
+                </div>
+                {/* Camera preview */}
+                {cameraOpen ? (
+                  <div className="mt-3">
+                    <div className="relative">
+                      <video ref={videoRef} className="w-full rounded" playsInline />
+                      <div className="flex gap-2 mt-2">
+                        <button type="button" className="px-3 py-1 bg-green-600 text-white rounded" onClick={captureFromCamera}>Capture</button>
+                        <button type="button" className="px-3 py-1 bg-gray-200 rounded" onClick={stopCamera}>Close Camera</button>
+                      </div>
+                    </div>
+                  </div>
+                ) : null}
+                <div className="flex gap-2">
+                  <Button onClick={handleSubmit} className="w-full bg-green-600 hover:bg-green-700" size="lg">
+                    {editing ? (
+                      <>
+                        <Edit2 className="w-5 h-5 mr-2" />
+                        Save
+                      </>
+                    ) : (
+                      <>
+                        <Plus className="w-5 h-5 mr-2" />
+                        Add Crop
+                      </>
+                    )}
+                  </Button>
+                  <Button onClick={() => { setOpen(false); setEditing(null); }} variant="outline" className="w-32">Cancel</Button>
+                </div>
               </div>
-              <div>
-                <Label htmlFor="type">Fruit Type</Label>
-                <Select value={newCrop.type} onValueChange={(value) => setNewCrop({ ...newCrop, type: value })}>
-                  <SelectTrigger className="mt-1">
-                    <SelectValue placeholder="Select fruit type" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="Apple">Apple</SelectItem>
-                    <SelectItem value="Orange">Orange</SelectItem>
-                    <SelectItem value="Mango">Mango</SelectItem>
-                    <SelectItem value="Banana">Banana</SelectItem>
-                    <SelectItem value="Grapes">Grapes</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              <div>
-                <Label htmlFor="section">Farm Section</Label>
-                <Input
-                  id="section"
-                  placeholder="e.g., Section A"
-                  value={newCrop.section}
-                  onChange={(e) => setNewCrop({ ...newCrop, section: e.target.value })}
-                  className="mt-1"
-                />
-              </div>
-              <div>
-                <Label htmlFor="planted">Planting Date</Label>
-                <Input
-                  id="planted"
-                  placeholder="e.g., Oct 2025"
-                  value={newCrop.planted}
-                  onChange={(e) => setNewCrop({ ...newCrop, planted: e.target.value })}
-                  className="mt-1"
-                />
-              </div>
-              <Button onClick={handleAddCrop} className="w-full bg-green-600 hover:bg-green-700" size="lg">
-                <Plus className="w-5 h-5 mr-2" />
-                Add Crop
-              </Button>
-            </div>
-          </DialogContent>
-        </Dialog>
+            </DialogContent>
+          </Dialog>
+        </div>
       </div>
 
       {/* Crops List */}
@@ -176,7 +295,7 @@ export function CropManagement() {
             <div className="flex gap-4 p-4">
               <div className="w-24 h-24 rounded-lg overflow-hidden flex-shrink-0">
                 <ImageWithFallback
-                  src={crop.image}
+                  src={crop.photos && crop.photos.length ? crop.photos[0] : 'https://images.unsplash.com/photo-1501004318641-b39e6451bec6?auto=format&fit=crop&w=800&q=60'}
                   alt={crop.name}
                   className="w-full h-full object-cover"
                 />
@@ -184,18 +303,28 @@ export function CropManagement() {
               <div className="flex-1 min-w-0">
                 <div className="flex items-start justify-between gap-2 mb-2">
                   <h3 className="text-green-900">{crop.name}</h3>
-                  <div className={`px-3 py-1 rounded-full flex items-center gap-1 ${getStatusColor(crop.status)}`}>
-                    <CircleDot className="w-3 h-3" />
-                    <span className="text-sm whitespace-nowrap">{getStatusText(crop.status)}</span>
+                  <div className="flex items-center gap-2">
+                    {/* prediction UI removed from list; predictions handled by separate flow */}
+                    <Button variant="ghost" onClick={() => openEditDialog(crop)} className="p-1">
+                      <Edit2 className="w-4 h-4" />
+                    </Button>
+                    <Button variant="ghost" onClick={() => handleDelete(crop.id)} className="p-1">
+                      <Trash2 className="w-4 h-4 text-red-600" />
+                    </Button>
                   </div>
                 </div>
                 <div className="space-y-1">
                   <p className="text-sm text-green-600 flex items-center gap-2">
                     <Apple className="w-4 h-4" />
-                    {crop.type}
+                    {crop.variety || '-'}
                   </p>
-                  <p className="text-sm text-green-600">📍 {crop.section}</p>
-                  <p className="text-sm text-green-600">🌱 Planted: {crop.planted}</p>
+                  <p className="text-sm text-green-600">🌱 Planted: {crop.plantingDate}</p>
+                  {crop.location ? (
+                    <p className="text-sm text-green-600 flex items-center gap-2"><MapPin className="w-4 h-4" />{crop.location}</p>
+                  ) : null}
+                  {crop.photos && crop.photos.length ? (
+                    <p className="text-sm text-green-600">📷 {crop.photos.length} photos</p>
+                  ) : null}
                 </div>
               </div>
             </div>
