@@ -1,10 +1,15 @@
 import { useEffect, useState } from "react";
 import { Card } from "./ui/card";
 import { Apple, Droplet, Sun, TrendingUp } from "lucide-react";
+import { Reminder } from "./DashboardPage";
+
+interface DashboardProps {
+  reminders: Reminder[];
+  setReminders: React.Dispatch<React.SetStateAction<Reminder[]>>;
+}
 
 export function Dashboard() {
   const [weather, setWeather] = useState(null);
-
   const API_KEY = "d2230d5acc31c0fb701054e7cfb70fb4"; // Your OpenWeatherMap API Key
 
   function getWeatherIcon(iconCode) {
