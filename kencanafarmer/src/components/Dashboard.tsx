@@ -1,13 +1,52 @@
+import { useEffect, useState } from "react";
 import { Card } from "./ui/card";
 import { Apple, Droplet, Sun, TrendingUp } from "lucide-react";
 
 export function Dashboard() {
+  const [weather, setWeather] = useState(null);
+
+  const API_KEY = "d2230d5acc31c0fb701054e7cfb70fb4"; // Your OpenWeatherMap API Key
+
+  function getWeatherIcon(iconCode) {
+  return `https://openweathermap.org/img/wn/${iconCode}@2x.png`;
+  }
+
+  // Get real-time weather
+  useEffect(() => {
+    navigator.geolocation.getCurrentPosition(
+      async (pos) => {
+        const lat = pos.coords.latitude;
+        const lon = pos.coords.longitude;
+
+        try {
+          const res = await fetch(
+            `https://api.openweathermap.org/data/2.5/weather?lat=${lat}&lon=${lon}&appid=${API_KEY}&units=metric`
+          );
+          const data = await res.json();
+          setWeather(data);
+        } catch (err) {
+          console.error("Weather API Error:", err);
+        }
+      },
+      (err) => {
+        console.error("Location Error:", err);
+      }
+    );
+  }, []);
+
+  const today = new Date().toLocaleDateString("en-US", {
+    weekday: "long",
+    year: "numeric",
+    month: "long",
+    day: "numeric",
+  });
+
   return (
     <div className="p-4 pb-24 bg-green-50 min-h-screen">
       {/* Header */}
       <div className="mb-6">
         <h1 className="text-green-800 mb-1">Welcome Back!</h1>
-        <p className="text-green-600">Friday, October 31, 2025</p>
+        <p className="text-green-600">{today}</p>
       </div>
 
       {/* Quick Stats */}
@@ -90,15 +129,25 @@ export function Dashboard() {
 
       {/* Weather Widget */}
       <Card className="p-4 bg-gradient-to-br from-blue-500 to-blue-600 text-white">
+      {weather ? (
         <div className="flex items-center justify-between">
           <div>
-            <p className="text-sm opacity-90">Today's Weather</p>
-            <p className="text-3xl mt-1">28°C</p>
-            <p className="text-sm opacity-90 mt-1">Partly Cloudy</p>
+            <p className="text-sm opacity-90">{weather.name}</p>
+            <p className="text-3xl mt-1">{Math.round(weather.main.temp)}°C</p>
+            <p className="text-sm opacity-90 mt-1">
+              {weather.weather[0].description}
+            </p>
           </div>
-          <Sun className="w-16 h-16 opacity-90" />
+          <img
+            src={getWeatherIcon(weather.weather[0].icon)}
+            alt={weather.weather[0].description}
+            className="w-16 h-16"
+          />
         </div>
-      </Card>
+      ) : (
+        <p>Detecting location & loading weather...</p>
+      )}
+    </Card>
     </div>
   );
 }
