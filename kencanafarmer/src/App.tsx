@@ -1,4 +1,8 @@
 import { useState } from 'react';
+// 1. Import the Context Providers (The "Global Databases")
+import { TaskProvider } from './contexts/TaskContext';
+import { CropProvider } from './contexts/CropContext';
+
 import { Dashboard } from './components/Dashboard';
 import { CropManagement } from './components/CropManagement';
 import { Reminders } from './components/Reminders';
@@ -41,31 +45,38 @@ export default function App() {
   ];
 
   return (
-    <div className="min-h-screen bg-green-50">
-      <main className="max-w-md mx-auto bg-white shadow-xl min-h-screen relative">
-        {renderPage()}
+    // 2. Wrap everything with the Providers
+    // Now, every component inside here can access the data!
+    <TaskProvider>
+      <CropProvider>
+        <div className="min-h-screen bg-green-50">
+          <main className="max-w-md mx-auto bg-white shadow-xl min-h-screen relative">
+            
+            {renderPage()}
 
-        <nav className="fixed bottom-0 left-0 right-0 max-w-md mx-auto bg-white border-t border-green-200 shadow-lg">
-          <div className="grid grid-cols-6 gap-1 p-2">
-            {navItems.map((item) => {
-              const Icon = item.icon;
-              const isActive = currentPage === item.id;
-              return (
-                <button
-                  key={item.id}
-                  onClick={() => setCurrentPage(item.id)}
-                  className={`flex flex-col items-center justify-center py-2 px-1 rounded-lg transition-all ${
-                    isActive ? 'bg-green-100 text-green-700' : 'text-green-600 hover:bg-green-50'
-                  }`}
-                >
-                  <Icon size={20} />
-                  <span className="text-xs">{item.label}</span>
-                </button>
-              );
-            })}
-          </div>
-        </nav>
-      </main>
-    </div>
+            <nav className="fixed bottom-0 left-0 right-0 max-w-md mx-auto bg-white border-t border-green-200 shadow-lg">
+              <div className="grid grid-cols-6 gap-1 p-2">
+                {navItems.map((item) => {
+                  const Icon = item.icon;
+                  const isActive = currentPage === item.id;
+                  return (
+                    <button
+                      key={item.id}
+                      onClick={() => setCurrentPage(item.id)}
+                      className={`flex flex-col items-center justify-center py-2 px-1 rounded-lg transition-all ${
+                        isActive ? 'bg-green-100 text-green-700' : 'text-green-600 hover:bg-green-50'
+                      }`}
+                    >
+                      <Icon size={20} />
+                      <span className="text-xs">{item.label}</span>
+                    </button>
+                  );
+                })}
+              </div>
+            </nav>
+          </main>
+        </div>
+      </CropProvider>
+    </TaskProvider>
   );
 }

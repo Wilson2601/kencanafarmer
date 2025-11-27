@@ -2,54 +2,22 @@ import { Card } from "./ui/card";
 import { Button } from "./ui/button";
 import { Plus, Bell, Droplet, Scissors, Sprout, Trash2 } from "lucide-react";
 import { useState } from "react";
+import { useTasks } from "../hooks/useTasks";
+import type { Task } from "../types/task";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "./ui/dialog";
 import { Input } from "./ui/input";
 import { Label } from "./ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "./ui/select";
 
-interface Reminder {
-  id: number;
-  title: string;
-  crop: string;
-  time: string;
-  type: 'water' | 'prune' | 'fertilize' | 'other';
-  completed: boolean;
-}
-
 export function Reminders() {
-  const [reminders, setReminders] = useState<Reminder[]>([
-    {
-      id: 1,
-      title: 'Water Apple Trees',
-      crop: 'Section A',
-      time: '9:00 AM',
-      type: 'water',
-      completed: false
-    },
-    {
-      id: 2,
-      title: 'Prune Orange Trees',
-      crop: 'Section B',
-      time: '11:00 AM',
-      type: 'prune',
-      completed: false
-    },
-    {
-      id: 3,
-      title: 'Fertilize Mangoes',
-      crop: 'Section C',
-      time: '3:00 PM',
-      type: 'fertilize',
-      completed: true
-    }
-  ]);
+  const { tasks: reminders, addTask, toggleComplete, deleteTask } = useTasks();
 
   const [open, setOpen] = useState(false);
-  const [newReminder, setNewReminder] = useState({
+  const [newReminder, setNewReminder] = useState<Omit<Task, 'id' | 'completed'>>({
     title: '',
     crop: '',
     time: '',
-    type: 'other' as const
+    type: 'other'
   });
 
   const getIcon = (type: string) => {
@@ -80,25 +48,13 @@ export function Reminders() {
 
   const handleAddReminder = () => {
     if (newReminder.title && newReminder.crop && newReminder.time) {
-      setReminders([...reminders, {
-        id: reminders.length + 1,
-        ...newReminder,
-        completed: false
-      }]);
+      addTask({ ...newReminder });
       setNewReminder({ title: '', crop: '', time: '', type: 'other' });
       setOpen(false);
     }
   };
 
-  const toggleComplete = (id: number) => {
-    setReminders(reminders.map(r => 
-      r.id === id ? { ...r, completed: !r.completed } : r
-    ));
-  };
-
-  const deleteReminder = (id: number) => {
-    setReminders(reminders.filter(r => r.id !== id));
-  };
+  // toggleComplete and deleteTask are provided by the shared hook
 
   const activeReminders = reminders.filter(r => !r.completed);
   const completedReminders = reminders.filter(r => r.completed);
@@ -206,7 +162,7 @@ export function Reminders() {
                       <Button
                         size="sm"
                         variant="outline"
-                        onClick={() => deleteReminder(reminder.id)}
+                        onClick={() => deleteTask(reminder.id)}
                         className="h-8 px-2"
                       >
                         <Trash2 className="w-4 h-4 text-red-600" />
@@ -238,7 +194,7 @@ export function Reminders() {
                   <Button
                     size="sm"
                     variant="outline"
-                    onClick={() => deleteReminder(reminder.id)}
+                    onClick={() => deleteTask(reminder.id)}
                     className="h-8 px-2"
                   >
                     <Trash2 className="w-4 h-4 text-red-600" />
