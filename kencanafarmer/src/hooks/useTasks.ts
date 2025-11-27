@@ -11,28 +11,55 @@ const DEFAULT_TASKS: Task[] = [
 export function useTasks() {
   const [tasks, setTasks] = useLocalStorage<Task[]>("kencana_tasks_v1", DEFAULT_TASKS);
 
-  const addTask = useCallback((task: Omit<Task, "id" | "completed">) => {
-    setTasks((prev) => {
+
+  // Remove completed tasks older than 48 hours (default)
+  const EXPIRY_HOURS = 48;
+  const now = Date.now();
+  const filterExpired = (tasks: Task[]) =>
+    tasks.filter(
+      (t) =>
+        !t.completed ||
+        !t.completedAt ||
+        now - t.completedAt < EXPIRY_HOURS * 60 * 60 * 1000
+    );
+
+  // Wrap setTasks to always filter expired
+  const safeSetTasks = useCallback((updater: (prev: Task[]) => Task[]) => {
+    setTasks((prev) => filterExpired(updater(filterExpired(prev))));
+  }, [setTasks]);
+
+  const addTask = useCallback((task: Omit<Task, "id" | "completed" | "completedAt">) => {
+    safeSetTasks((prev) => {
       const nextId = prev.length ? Math.max(...prev.map((t) => t.id)) + 1 : 1;
       return [...prev, { ...task, id: nextId, completed: false }];
     });
-  }, [setTasks]);
+  }, [safeSetTasks]);
 
   const toggleComplete = useCallback((id: number) => {
-    setTasks((prev) => prev.map((t) => (t.id === id ? { ...t, completed: !t.completed } : t)));
-  }, [setTasks]);
+    safeSetTasks((prev) =>
+      prev.map((t) =>
+        t.id === id
+          ? t.completed
+            ? { ...t, completed: false, completedAt: undefined }
+            : { ...t, completed: true, completedAt: Date.now() }
+          : t
+      )
+    );
+  }, [safeSetTasks]);
 
   const deleteTask = useCallback((id: number) => {
-    setTasks((prev) => prev.filter((t) => t.id !== id));
-  }, [setTasks]);
+    safeSetTasks((prev) => prev.filter((t) => t.id !== id));
+  }, [safeSetTasks]);
 
   const updateTask = useCallback((id: number, patch: Partial<Task>) => {
-    setTasks((prev) => prev.map((t) => (t.id === id ? { ...t, ...patch } : t)));
-  }, [setTasks]);
+    safeSetTasks((prev) => prev.map((t) => (t.id === id ? { ...t, ...patch } : t)));
+  }, [safeSetTasks]);
 
+  // Filter expired tasks on every read
+  const filteredTasks = filterExpired(tasks);
   return {
-    tasks,
-    setTasks,
+    tasks: filteredTasks,
+    setTasks: safeSetTasks,
     addTask,
     toggleComplete,
     deleteTask,

@@ -1,9 +1,13 @@
 import { Card } from "./ui/card";
 import { Calendar, TrendingUp, Package } from "lucide-react";
 import { ImageWithFallback } from "./figma/ImageWithFallback";
+import { useCrops } from "../hooks/useCrops";
+import { useMemo } from "react";
+
+const STAGES = ['Planted', 'Growing', 'Flowering', 'Fruiting', 'Ready'];
 
 interface HarvestPrediction {
-  id: number;
+  id: string;
   crop: string;
   section: string;
   harvestDate: string;
@@ -15,41 +19,92 @@ interface HarvestPrediction {
 }
 
 export function HarvestPrediction() {
-  const predictions: HarvestPrediction[] = [
-    {
-      id: 1,
-      crop: 'Mango Orchard',
-      section: 'Section C',
-      harvestDate: 'Nov 5, 2025',
-      daysRemaining: 5,
-      expectedYield: '850 kg',
-      confidence: 95,
-      image: 'https://images.unsplash.com/photo-1689001819501-416754401ab1?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxtYW5nbyUyMHRyZWUlMjB0cm9waWNhbHxlbnwxfHx8fDE3NjE4OTg1Nzh8MA&ixlib=rb-4.1.0&q=80&w=1080&utm_source=figma&utm_medium=referral',
-      status: 'ready'
-    },
-    {
-      id: 2,
-      crop: 'Apple Trees',
-      section: 'Section A',
-      harvestDate: 'Nov 15, 2025',
-      daysRemaining: 15,
-      expectedYield: '650 kg',
-      confidence: 88,
-      image: 'https://images.unsplash.com/photo-1634630486820-d2eae27becbf?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxhcHBsZSUyMHRyZWUlMjBmcnVpdHxlbnwxfHx8fDE3NjE4OTg1Nzd8MA&ixlib=rb-4.1.0&q=80&w=1080&utm_source=figma&utm_medium=referral',
-      status: 'soon'
-    },
-    {
-      id: 3,
-      crop: 'Orange Grove',
-      section: 'Section B',
-      harvestDate: 'Dec 10, 2025',
-      daysRemaining: 40,
-      expectedYield: '920 kg',
-      confidence: 82,
-      image: 'https://images.unsplash.com/photo-1741012253484-43b5b9b99491?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxvcmFuZ2UlMjBjaXRydXMlMjBmYXJtfGVufDF8fHx8MTc2MTg5ODU3N3ww&ixlib=rb-4.1.0&q=80&w=1080&utm_source=figma&utm_medium=referral',
-      status: 'upcoming'
+  const { crops } = useCrops();
+
+  // Calculate days to harvest based on current stage
+  const calculateDaysToNext = (currentStageIndex: number) => {
+    const remainingStages = STAGES.length - 1 - currentStageIndex;
+    return Math.max(remainingStages * 5, 0);
+  };
+
+  // Estimate yield based on crop type and stage
+  const estimateYield = (cropName: string, stageIndex: number): string => {
+    // Base yields for common crops (in kg)
+    const baseYields: Record<string, number> = {
+      'apple': 500,
+      'mango': 800,
+      'orange': 600,
+      'watermelon': 300,
+      'durian': 400,
+      'papaya': 200,
+      'banana': 350,
+      'coconut': 450,
+      'avocado': 250,
+    };
+
+    // Find matching crop base yield (case-insensitive, partial match)
+    let baseYield = 300; // default
+    const cropLower = cropName.toLowerCase();
+    for (const [key, value] of Object.entries(baseYields)) {
+      if (cropLower.includes(key) || key.includes(cropLower.split(' ')[0])) {
+        baseYield = value;
+        break;
+      }
     }
-  ];
+
+    // Adjust based on stage (0-4: Planted, Growing, Flowering, Fruiting, Ready)
+    // Only estimate after Flowering stage (stage 2+)
+    if (stageIndex < 2) {
+      return 'TBD'; // Not enough data
+    }
+
+    // Scale yield based on progress: 60% at Flowering, 80% at Fruiting, 100% at Ready
+    const stageMultiplier = stageIndex === 2 ? 0.6 : stageIndex === 3 ? 0.8 : 1.0;
+    const estimatedYield = Math.round(baseYield * stageMultiplier);
+    return `${estimatedYield} kg`;
+  };
+
+  // Generate predictions from actual crops
+  const predictions: HarvestPrediction[] = useMemo(() => {
+    return crops.map((crop) => {
+      const stageIndex = crop.stageIndex ?? 0;
+      const daysRemaining = calculateDaysToNext(stageIndex);
+      
+      // Calculate harvest date
+      const harvestDate = new Date();
+      harvestDate.setDate(harvestDate.getDate() + daysRemaining);
+      
+      // Determine status
+      let status: 'upcoming' | 'soon' | 'ready' = 'upcoming';
+      if (stageIndex >= STAGES.length - 1) {
+        status = 'ready';
+      } else if (daysRemaining <= 5) {
+        status = 'soon';
+      }
+      
+      // AI confidence based on stage (higher confidence as crop progresses)
+      const baseConfidence = 70 + (stageIndex * 6);
+      const confidence = Math.min(baseConfidence, 95);
+
+      return {
+        id: crop.id,
+        crop: crop.name,
+        section: crop.location || 'Unknown',
+        harvestDate: harvestDate.toLocaleDateString('en-US', { 
+          month: 'short', 
+          day: 'numeric', 
+          year: 'numeric' 
+        }),
+        daysRemaining,
+        expectedYield: crop.expectedYield || estimateYield(crop.name, stageIndex),
+        confidence: crop.confidenceLevel ?? confidence,
+        image: crop.photos && crop.photos.length > 0 
+          ? crop.photos[crop.photos.length - 1]
+          : 'https://images.unsplash.com/photo-1625246333195-78d9c38ad576?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixlib=rb-4.1.0&q=80&w=1080',
+        status
+      };
+    });
+  }, [crops]);
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -77,6 +132,27 @@ export function HarvestPrediction() {
     }
   };
 
+  // Calculate summary stats
+  const summaryStats = useMemo(() => {
+    if (predictions.length === 0) {
+      return { nextDaysToHarvest: 0, totalYield: '0' };
+    }
+    
+    const nextDaysToHarvest = Math.min(...predictions.map(p => p.daysRemaining));
+    let totalYield = 0;
+    predictions.forEach(p => {
+      const match = p.expectedYield.match(/(\d+)/);
+      if (match) {
+        totalYield += parseInt(match[1]);
+      }
+    });
+    
+    return {
+      nextDaysToHarvest,
+      totalYield: totalYield.toString()
+    };
+  }, [predictions]);
+
   return (
     <div className="p-4 pb-24 bg-green-50 min-h-screen">
       {/* Header */}
@@ -92,7 +168,7 @@ export function HarvestPrediction() {
             <Calendar className="w-5 h-5 text-green-600" />
             <p className="text-sm text-green-600">Next Harvest</p>
           </div>
-          <p className="text-2xl text-green-800">5</p>
+          <p className="text-2xl text-green-800">{summaryStats.nextDaysToHarvest}</p>
           <p className="text-sm text-green-600">days</p>
         </Card>
 
@@ -101,15 +177,20 @@ export function HarvestPrediction() {
             <Package className="w-5 h-5 text-green-600" />
             <p className="text-sm text-green-600">Total Yield</p>
           </div>
-          <p className="text-2xl text-green-800">2,420</p>
+          <p className="text-2xl text-green-800">{summaryStats.totalYield}</p>
           <p className="text-sm text-green-600">kg expected</p>
         </Card>
       </div>
 
       {/* Predictions List */}
       <div className="space-y-4">
-        {predictions.map((prediction) => (
-          <Card key={prediction.id} className="overflow-hidden bg-white">
+        {predictions.length === 0 ? (
+          <Card className="p-4 bg-white">
+            <p className="text-sm text-green-600 text-center">No crops yet. Add crops in Growth Monitoring to see predictions.</p>
+          </Card>
+        ) : (
+          predictions.map((prediction) => (
+            <Card key={prediction.id} className="overflow-hidden bg-white">
             {/* Status Banner */}
             <div className={`px-4 py-2 border-b ${getStatusColor(prediction.status)}`}>
               <p className="text-sm">{getStatusText(prediction.status)}</p>
@@ -149,8 +230,9 @@ export function HarvestPrediction() {
                 </div>
               </div>
             </div>
-          </Card>
-        ))}
+            </Card>
+          ))
+        )}
       </div>
 
       {/* Info Card */}

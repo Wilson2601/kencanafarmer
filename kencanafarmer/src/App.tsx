@@ -19,7 +19,7 @@ export default function App() {
   const renderPage = () => {
     switch (currentPage) {
       case 'dashboard':
-        return <Dashboard />;
+        return <Dashboard onGoToReminders={() => setCurrentPage('reminders')} onGoToCrops={() => setCurrentPage('crops')} />;
       case 'crops':
         return <CropManagement />;
       case 'reminders':

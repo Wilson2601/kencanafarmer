@@ -2,17 +2,16 @@ import { Card } from "./ui/card";
 import { Button } from "./ui/button";
 import { Plus, Apple, Trash2, Edit2, MapPin } from "lucide-react";
 import { ImageWithFallback } from "./figma/ImageWithFallback";
-import { useEffect, useState, useRef } from "react";
+import { useState, useRef } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "./ui/dialog";
 import { Input } from "./ui/input";
 import { Label } from "./ui/label";
-// select component not used here
 import { Crop } from "../types/crop";
-import { loadCrops, addCrop, updateCrop, deleteCrop } from "../services/storage";
+import { useCrops } from "../hooks/useCrops";
 // harvest prediction handled elsewhere; do not import here
 
 export function CropManagement() {
-  const [crops, setCrops] = useState<Crop[]>([]);
+  const { crops, addCrop, updateCrop, deleteCrop } = useCrops();
 
   // Add / Edit dialog state
   const [open, setOpen] = useState(false);
@@ -21,10 +20,6 @@ export function CropManagement() {
   const [cameraOpen, setCameraOpen] = useState(false);
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const streamRef = useRef<MediaStream | null>(null);
-
-  useEffect(() => {
-    setCrops(loadCrops());
-  }, []);
 
   // (status helpers removed — `Crop` type doesn't include a status field)
 
@@ -50,33 +45,26 @@ export function CropManagement() {
     if (!form.name.trim()) return;
 
     if (editing) {
-      const updated: Crop = {
-        ...editing,
+      updateCrop(editing.id, {
         name: form.name.trim(),
         variety: form.variety || undefined,
         plantingDate: form.plantingDate,
-        // preserve existing expectedDaysToHarvest; prediction handled elsewhere
         photos: form.photos && form.photos.length ? form.photos : editing.photos,
         location: form.location || editing.location,
-      };
-      updateCrop(updated);
-      setCrops(loadCrops());
+      });
       setEditing(null);
       setOpen(false);
       stopCamera();
       return;
     }
 
-    const newC: Crop = {
-      id: crypto.randomUUID(),
+    addCrop({
       name: form.name.trim(),
       variety: form.variety || undefined,
       plantingDate: form.plantingDate,
       photos: form.photos && form.photos.length ? form.photos : [],
       location: form.location || undefined,
-    };
-    addCrop(newC);
-    setCrops(loadCrops());
+    });
     setOpen(false);
     stopCamera();
   }
@@ -135,7 +123,6 @@ export function CropManagement() {
   function handleDelete(id: string) {
     if (!confirm("Delete this crop?")) return;
     deleteCrop(id);
-    setCrops(loadCrops());
   }
 
   return (

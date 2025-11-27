@@ -7,4 +7,5 @@ export interface Task {
   time: string;
   type: TaskType;
   completed: boolean;
+  completedAt?: number; // timestamp in ms
 }
