@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
-import { Card } from "../ui/card";
+// FIXED LINE BELOW: Changed '..' to '.'
+import { Card } from "./ui/card";
 import { Apple, Droplet, Sun, TrendingUp, TrendingDown, Cloud, Wind } from "lucide-react";
 import { useTasks } from "../hooks/useTasks";
 import { useCrops } from "../hooks/useCrops";
@@ -73,14 +74,12 @@ export function Dashboard({ onGoToReminders, onGoToCrops }: { onGoToReminders?: 
     day: "numeric",
   });
 
-  // Safe checks in case hooks aren't ready
-  const tasksContext = useTasks();
-  const cropsContext = useCrops();
+  const { tasks } = useTasks();
+  const { crops } = useCrops();
   
-  const tasks = tasksContext ? tasksContext.tasks : [];
-  const crops = cropsContext ? cropsContext.crops : [];
-  
-  const activeTasks = tasks.filter((t) => !t.completed);
+  // Safety check for tasks
+  const safeTasks = tasks || [];
+  const activeTasks = safeTasks.filter((t) => !t.completed);
 
   return (
     <div className="p-4 pb-24 bg-green-50 min-h-screen">
