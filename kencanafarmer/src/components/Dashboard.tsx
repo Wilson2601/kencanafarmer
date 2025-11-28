@@ -62,7 +62,6 @@ export function Dashboard({ onGoToReminders, onGoToCrops }: { onGoToReminders?: 
   }, []);
 
   const today = new Date().toLocaleDateString("en-US", { weekday: "long", year: "numeric", month: "long", day: "numeric" });
-  
   const tasksResult = useTasks();
   const cropsResult = useCrops();
   const safeTasks = tasksResult?.tasks ?? [];
@@ -70,11 +69,25 @@ export function Dashboard({ onGoToReminders, onGoToCrops }: { onGoToReminders?: 
   const activeTasks = safeTasks.filter((t: any) => !t.completed);
 
   return (
-    <div className="p-4 pb-24 bg-green-50 min-h-screen">
-      {/* Header */}
-      <div className="mb-6">
-        <h1 className="text-green-800 mb-1">Welcome Back!</h1>
-        <p className="text-green-600">{today}</p>
+    <div className="p-4 pb-24 bg-green-50 min-h-screen max-w-full overflow-x-hidden">
+      {/* Header with Tung Tung Tung Sahur */}
+      <div className="mb-6 flex justify-between items-end">
+        <div>
+            <h1 className="text-green-800 mb-1 font-bold text-2xl">Welcome Back!</h1>
+            <p className="text-green-600">{today}</p>
+        </div>
+        <div className="relative -mb-2">
+            <img 
+                src="/sahur.png" 
+                alt="Tung Tung Tung Sahur" 
+                className="w-24 h-24 object-contain hover:scale-110 transition-transform cursor-pointer"
+                onError={(e) => {
+                    console.error("Image not found. Check if file exists in /public/sahur.png");
+                    // Hides image if missing so it doesn't look broken
+                    (e.target as HTMLImageElement).style.opacity = '0';
+                }}
+            />
+        </div>
       </div>
 
       {/* Quick Stats */}
@@ -140,10 +153,13 @@ export function Dashboard({ onGoToReminders, onGoToCrops }: { onGoToReminders?: 
       </div>
 
       {/* Weather Widget */}
-      {/* FIX: Using 'Card' to get shape, 'border-none' to remove white border, and 'style' to force blue */}
+      {/* FORCE STYLE: borderRadius: '20px' guarantees it looks round */}
       <Card 
         className="p-6 text-white mb-6 shadow-md border-none relative overflow-hidden"
-        style={{ background: 'linear-gradient(135deg, #2563eb 0%, #3b82f6 100%)' }} 
+        style={{ 
+            background: 'linear-gradient(135deg, #2563eb 0%, #3b82f6 100%)',
+            borderRadius: '20px' 
+        }} 
       >
         {weather ? (
           <div className="relative z-10">
@@ -195,12 +211,19 @@ export function Dashboard({ onGoToReminders, onGoToCrops }: { onGoToReminders?: 
       </Card>
 
       {/* 5-Day Forecast */}
+      {/* FORCE STYLE: borderRadius: '20px' to match the top card */}
       {forecast.length > 0 && (
-        <Card className="p-4 bg-white shadow-sm">
-          <h3 className="text-green-800 font-semibold mb-3">5-Day Forecast</h3>
-          <div className="flex gap-2 overflow-x-auto pb-2">
+        <Card 
+            className="p-5 bg-white shadow-sm w-full"
+            style={{ borderRadius: '20px' }}
+        >
+          <h3 className="text-green-800 font-semibold mb-4">5-Day Forecast</h3>
+          <div className="flex gap-3 overflow-x-auto pb-2 scrollbar-hide">
             {forecast.map((day, idx) => (
-              <div key={idx} className="flex-shrink-0 flex flex-col items-center justify-center gap-2 p-3 bg-white rounded-lg border border-blue-100 min-w-[85px] shadow-sm">
+              <div 
+                key={idx} 
+                className="flex-shrink-0 flex flex-col items-center justify-center gap-2 p-3 bg-white rounded-lg border border-blue-100 min-w-[85px] shadow-sm"
+              >
                 <p className="text-xs font-semibold text-blue-900 text-center">{day.date}</p>
                 <img src={getWeatherIcon(day.icon)} alt={day.description} className="w-8 h-8" />
                 <p className="text-sm font-bold text-blue-900">{day.temp}°C</p>
