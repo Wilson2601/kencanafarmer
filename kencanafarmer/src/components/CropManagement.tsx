@@ -186,13 +186,13 @@ export function CropManagement() {
                 {/* photo upload */}
                 <div>
                   <Label htmlFor="photos">Photos</Label>
-                  <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-2 mt-1">
                     <input
                       id="photos"
                       type="file"
                       accept="image/*"
                       multiple
-                      className="mt-1"
+                      style={{ display: 'none' }}
                       onChange={async (e) => {
                         const files = e.target.files;
                         if (!files || files.length === 0) return;
@@ -216,6 +216,12 @@ export function CropManagement() {
                         e.currentTarget.value = "";
                       }}
                     />
+                    <label
+                      htmlFor="photos"
+                      className="px-4 py-2 border border-gray-300 rounded-lg cursor-pointer bg-white hover:bg-gray-50 text-gray-700 text-sm font-medium transition"
+                    >
+                      Choose Files
+                    </label>
                     <button type="button" className="ml-2 px-3 py-1 rounded bg-gray-100" onClick={startCamera}>
                       Use Camera
                     </button>
