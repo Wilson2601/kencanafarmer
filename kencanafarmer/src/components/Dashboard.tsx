@@ -36,7 +36,7 @@ export function Dashboard({ onGoToReminders, onGoToCrops }: { onGoToReminders?: 
           const forecastData = await forecastRes.json();
           
           // Get one forecast per day (every 24 hours)
-          const dailyForecasts = [];
+          const dailyForecasts: any[] = [];
           const seenDates = new Set<string>();
           
           for (const item of forecastData.list) {
@@ -77,10 +77,11 @@ export function Dashboard({ onGoToReminders, onGoToCrops }: { onGoToReminders?: 
   const { tasks } = useTasks();
   const { crops } = useCrops();
   
-  // Safety check for tasks
+  // Safety check for tasks and crops
   const safeTasks = tasks || [];
   const activeTasks = safeTasks.filter((t) => !t.completed);
-
+  const safeCrops = crops || [];
+  
   return (
     <div className="p-4 pb-24 bg-green-50 min-h-screen">
       {/* Header */}
@@ -102,7 +103,7 @@ export function Dashboard({ onGoToReminders, onGoToCrops }: { onGoToReminders?: 
                 <Apple className="w-6 h-6 text-green-600" />
               </div>
               <div>
-                <p className="text-2xl text-green-800">{crops.length}</p>
+                <p className="text-2xl text-green-800">{safeCrops.length}</p>
                 <p className="text-sm text-green-600">Active Crops</p>
               </div>
             </div>
