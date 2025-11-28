@@ -1,5 +1,4 @@
 import { useEffect, useState } from "react";
-// FIXED LINE BELOW: Changed '..' to '.'
 import { Card } from "./ui/card";
 import { Apple, Droplet, Sun, TrendingUp, TrendingDown, Cloud, Wind } from "lucide-react";
 import { useTasks } from "../hooks/useTasks";
@@ -8,7 +7,11 @@ import { useCrops } from "../hooks/useCrops";
 export function Dashboard({ onGoToReminders, onGoToCrops }: { onGoToReminders?: () => void; onGoToCrops?: () => void }) {
   const [weather, setWeather] = useState<any>(null);
   const [forecast, setForecast] = useState<any[]>([]);
-  const API_KEY = "d2230d5acc31c0fb701054e7cfb70fb4"; // Your OpenWeatherMap API Key
+  // Read API key from environment variables (support NEXT_PUBLIC_ and VITE_ prefixes).
+  const API_KEY =
+    process.env.NEXT_PUBLIC_OWM_KEY ??
+    (typeof import.meta !== "undefined" ? (import.meta as any).env?.VITE_OWM_KEY : undefined) ??
+    "";
 
   function getWeatherIcon(iconCode: string) {
     return `https://openweathermap.org/img/wn/${iconCode}@2x.png`;
@@ -16,6 +19,11 @@ export function Dashboard({ onGoToReminders, onGoToCrops }: { onGoToReminders?: 
 
   // Get real-time weather and 5-day forecast
   useEffect(() => {
+    if (!API_KEY) {
+      console.warn("OpenWeatherMap API key is missing. Set NEXT_PUBLIC_OWM_KEY or VITE_OWM_KEY in your environment.");
+      return;
+    }
+
     navigator.geolocation.getCurrentPosition(
       async (pos) => {
         const lat = pos.coords.latitude;
@@ -34,13 +42,13 @@ export function Dashboard({ onGoToReminders, onGoToCrops }: { onGoToReminders?: 
             `https://api.openweathermap.org/data/2.5/forecast?lat=${lat}&lon=${lon}&appid=${API_KEY}&units=metric`
           );
           const forecastData = await forecastRes.json();
-          
+
           // Get one forecast per day (every 24 hours)
           const dailyForecasts: any[] = [];
           const seenDates = new Set<string>();
-          
+
           for (const item of forecastData.list) {
-            const date = new Date(item.dt * 1000).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+            const date = new Date(item.dt * 1000).toLocaleDateString("en-US", { month: "short", day: "numeric" });
             if (!seenDates.has(date) && dailyForecasts.length < 5) {
               seenDates.add(date);
               dailyForecasts.push({
@@ -51,11 +59,11 @@ export function Dashboard({ onGoToReminders, onGoToCrops }: { onGoToReminders?: 
                 description: item.weather[0].description,
                 icon: item.weather[0].icon,
                 humidity: item.main.humidity,
-                windSpeed: Math.round(item.wind.speed * 10) / 10
+                windSpeed: Math.round(item.wind.speed * 10) / 10,
               });
             }
           }
-          
+
           setForecast(dailyForecasts);
         } catch (err) {
           console.error("Weather API Error:", err);
@@ -65,7 +73,7 @@ export function Dashboard({ onGoToReminders, onGoToCrops }: { onGoToReminders?: 
         console.error("Location Error:", err);
       }
     );
-  }, []);
+  }, [API_KEY]);
 
   const today = new Date().toLocaleDateString("en-US", {
     weekday: "long",
@@ -76,12 +84,12 @@ export function Dashboard({ onGoToReminders, onGoToCrops }: { onGoToReminders?: 
 
   const { tasks } = useTasks();
   const { crops } = useCrops();
-  
+
   // Safety check for tasks and crops
   const safeTasks = tasks || [];
   const activeTasks = safeTasks.filter((t) => !t.completed);
   const safeCrops = crops || [];
-  
+
   return (
     <div className="p-4 pb-24 bg-green-50 min-h-screen">
       {/* Header */}
@@ -94,7 +102,7 @@ export function Dashboard({ onGoToReminders, onGoToCrops }: { onGoToReminders?: 
       <div className="grid grid-cols-2 gap-3 mb-6">
         <button
           onClick={onGoToCrops}
-          style={{ background: 'none', border: 'none', padding: 0 }}
+          style={{ background: "none", border: "none", padding: 0 }}
           className="text-left"
         >
           <Card className="p-4 bg-white border-green-200 hover:bg-green-50 cursor-pointer transition">
@@ -112,7 +120,7 @@ export function Dashboard({ onGoToReminders, onGoToCrops }: { onGoToReminders?: 
 
         <button
           onClick={onGoToReminders}
-          style={{ background: 'none', border: 'none', padding: 0 }}
+          style={{ background: "none", border: "none", padding: 0 }}
           className="text-left"
         >
           <Card className="p-4 bg-white border-orange-200 hover:bg-orange-50 cursor-pointer transition">
@@ -143,16 +151,26 @@ export function Dashboard({ onGoToReminders, onGoToCrops }: { onGoToReminders?: 
                 key={task.id}
                 className="w-full text-left"
                 onClick={onGoToReminders}
-                style={{ background: 'none', border: 'none', padding: 0 }}
+                style={{ background: "none", border: "none", padding: 0 }}
               >
                 <Card className="p-4 bg-white hover:bg-green-50 cursor-pointer transition">
                   <div className="flex items-start gap-3">
-                    <div className={`p-2 rounded-lg mt-1 ${task.type === 'water' ? 'bg-blue-100' : task.type === 'prune' ? 'bg-purple-100' : task.type === 'fertilize' ? 'bg-green-100' : 'bg-orange-100'}`}>
-                      {task.type === 'water' ? (
+                    <div
+                      className={`p-2 rounded-lg mt-1 ${
+                        task.type === "water"
+                          ? "bg-blue-100"
+                          : task.type === "prune"
+                          ? "bg-purple-100"
+                          : task.type === "fertilize"
+                          ? "bg-green-100"
+                          : "bg-orange-100"
+                      }`}
+                    >
+                      {task.type === "water" ? (
                         <Droplet className="w-5 h-5 text-blue-600" />
-                      ) : task.type === 'prune' ? (
+                      ) : task.type === "prune" ? (
                         <TrendingDown className="w-5 h-5 text-purple-600" />
-                      ) : task.type === 'fertilize' ? (
+                      ) : task.type === "fertilize" ? (
                         <Apple className="w-5 h-5 text-green-600" />
                       ) : (
                         <TrendingUp className="w-5 h-5 text-orange-600" />
@@ -184,17 +202,11 @@ export function Dashboard({ onGoToReminders, onGoToCrops }: { onGoToReminders?: 
                   <h3 className="text-blue-100 font-medium">{weather.name}</h3>
                 </div>
                 <h1 className="text-5xl font-bold mb-1">{Math.round(weather.main.temp)}°C</h1>
-                <p className="text-blue-100 capitalize font-medium">
-                  {weather.weather[0].description}
-                </p>
+                <p className="text-blue-100 capitalize font-medium">{weather.weather[0].description}</p>
               </div>
               {/* Large Icon */}
               <div className="bg-white/10 p-3 rounded-full backdrop-blur-sm">
-                <img
-                  src={getWeatherIcon(weather.weather[0].icon)}
-                  alt={weather.weather[0].description}
-                  className="w-16 h-16"
-                />
+                <img src={getWeatherIcon(weather.weather[0].icon)} alt={weather.weather[0].description} className="w-16 h-16" />
               </div>
             </div>
 
@@ -203,7 +215,6 @@ export function Dashboard({ onGoToReminders, onGoToCrops }: { onGoToReminders?: 
 
             {/* Bottom Row: Farming Metrics Grid */}
             <div className="grid grid-cols-2 gap-4">
-              
               {/* Humidity */}
               <div className="flex items-center gap-3 bg-blue-700/20 p-3 rounded-xl border border-blue-400/20">
                 <div className="bg-blue-100/20 p-2 rounded-lg">
@@ -221,11 +232,12 @@ export function Dashboard({ onGoToReminders, onGoToCrops }: { onGoToReminders?: 
                   <Wind className="w-5 h-5 text-blue-100" />
                 </div>
                 <div>
-                  <p className="text-xl font-bold">{weather.wind.speed} <span className="text-sm font-normal">m/s</span></p>
+                  <p className="text-xl font-bold">
+                    {weather.wind.speed} <span className="text-sm font-normal">m/s</span>
+                  </p>
                   <p className="text-xs text-blue-200 uppercase tracking-wider">Wind Speed</p>
                 </div>
               </div>
-
             </div>
           </div>
         ) : (
@@ -242,20 +254,11 @@ export function Dashboard({ onGoToReminders, onGoToCrops }: { onGoToReminders?: 
           <h3 className="text-green-800 font-semibold mb-3">5-Day Forecast</h3>
           <div className="flex gap-2 overflow-x-auto pb-2">
             {forecast.map((day, idx) => (
-              <div
-                key={idx}
-                className="flex-shrink-0 flex flex-col items-center justify-center gap-2 p-3 bg-white rounded-lg border border-blue-300 min-w-[85px]"
-              >
+              <div key={idx} className="flex-shrink-0 flex flex-col items-center justify-center gap-2 p-3 bg-white rounded-lg border border-blue-300 min-w-[85px]">
                 <p className="text-xs font-semibold text-blue-900 text-center">{day.date}</p>
-                <img
-                  src={getWeatherIcon(day.icon)}
-                  alt={day.description}
-                  className="w-8 h-8"
-                />
+                <img src={getWeatherIcon(day.icon)} alt={day.description} className="w-8 h-8" />
                 <p className="text-sm font-bold text-blue-900">{day.temp}°C</p>
-                <p className="text-xs text-blue-600 text-center">
-                  {day.tempMin}° ~ {day.tempMax}°
-                </p>
+                <p className="text-xs text-blue-600 text-center">{day.tempMin}° ~ {day.tempMax}°</p>
                 <div className="flex items-center gap-0.5 text-xs text-blue-600 justify-center">
                   <Wind className="w-3 h-3" />
                   <span>{day.windSpeed}m/s</span>
