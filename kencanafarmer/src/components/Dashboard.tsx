@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
-import { Card } from "./ui/card";
-import { Apple, Droplet, Sun, TrendingUp, TrendingDown, Cloud, CloudRain, Wind } from "lucide-react";
+import { Card } from "../ui/card";
+import { Apple, Droplet, Sun, TrendingUp, TrendingDown, Cloud, Wind } from "lucide-react";
 import { useTasks } from "../hooks/useTasks";
 import { useCrops } from "../hooks/useCrops";
 
@@ -10,7 +10,7 @@ export function Dashboard({ onGoToReminders, onGoToCrops }: { onGoToReminders?: 
   const API_KEY = "d2230d5acc31c0fb701054e7cfb70fb4"; // Your OpenWeatherMap API Key
 
   function getWeatherIcon(iconCode: string) {
-  return `https://openweathermap.org/img/wn/${iconCode}@2x.png`;
+    return `https://openweathermap.org/img/wn/${iconCode}@2x.png`;
   }
 
   // Get real-time weather and 5-day forecast
@@ -73,8 +73,13 @@ export function Dashboard({ onGoToReminders, onGoToCrops }: { onGoToReminders?: 
     day: "numeric",
   });
 
-  const { tasks } = useTasks();
-  const { crops } = useCrops();
+  // Safe checks in case hooks aren't ready
+  const tasksContext = useTasks();
+  const cropsContext = useCrops();
+  
+  const tasks = tasksContext ? tasksContext.tasks : [];
+  const crops = cropsContext ? cropsContext.crops : [];
+  
   const activeTasks = tasks.filter((t) => !t.completed);
 
   return (
@@ -124,7 +129,7 @@ export function Dashboard({ onGoToReminders, onGoToCrops }: { onGoToReminders?: 
         </button>
       </div>
 
-      {/* Today's Tasks (sourced from shared tasks store) */}
+      {/* Today's Tasks */}
       <div className="mb-6">
         <h2 className="text-green-800 mb-3">Today's Tasks</h2>
         <div className="space-y-3">
@@ -168,25 +173,66 @@ export function Dashboard({ onGoToReminders, onGoToCrops }: { onGoToReminders?: 
         </div>
       </div>
 
-      {/* Weather Widget - Current */}
-      <Card className="p-4 bg-gradient-to-br from-blue-500 to-blue-600 text-white mb-4">
+      {/* Weather Widget - Current (Agricultural View) */}
+      <Card className="p-6 bg-gradient-to-br from-blue-600 to-blue-500 text-white mb-4 shadow-lg rounded-2xl">
         {weather ? (
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm opacity-90">{weather.name}</p>
-              <p className="text-3xl font-bold mt-1">{Math.round(weather.main.temp)}°C</p>
-              <p className="text-xs opacity-80 mt-2">
-                {weather.weather[0].description}
-              </p>
+          <div>
+            {/* Top Row: Location, Temp, Icon */}
+            <div className="flex items-start justify-between mb-6">
+              <div>
+                <div className="flex items-center gap-2 mb-1">
+                  <h3 className="text-blue-100 font-medium">{weather.name}</h3>
+                </div>
+                <h1 className="text-5xl font-bold mb-1">{Math.round(weather.main.temp)}°C</h1>
+                <p className="text-blue-100 capitalize font-medium">
+                  {weather.weather[0].description}
+                </p>
+              </div>
+              {/* Large Icon */}
+              <div className="bg-white/10 p-3 rounded-full backdrop-blur-sm">
+                <img
+                  src={getWeatherIcon(weather.weather[0].icon)}
+                  alt={weather.weather[0].description}
+                  className="w-16 h-16"
+                />
+              </div>
             </div>
-            <img
-              src={getWeatherIcon(weather.weather[0].icon)}
-              alt={weather.weather[0].description}
-              className="w-20 h-20"
-            />
+
+            {/* Divider */}
+            <div className="h-px bg-blue-400/30 w-full mb-6"></div>
+
+            {/* Bottom Row: Farming Metrics Grid */}
+            <div className="grid grid-cols-2 gap-4">
+              
+              {/* Humidity */}
+              <div className="flex items-center gap-3 bg-blue-700/20 p-3 rounded-xl border border-blue-400/20">
+                <div className="bg-blue-100/20 p-2 rounded-lg">
+                  <Droplet className="w-5 h-5 text-blue-100" />
+                </div>
+                <div>
+                  <p className="text-xl font-bold">{weather.main.humidity}%</p>
+                  <p className="text-xs text-blue-200 uppercase tracking-wider">Humidity</p>
+                </div>
+              </div>
+
+              {/* Wind Speed */}
+              <div className="flex items-center gap-3 bg-blue-700/20 p-3 rounded-xl border border-blue-400/20">
+                <div className="bg-blue-100/20 p-2 rounded-lg">
+                  <Wind className="w-5 h-5 text-blue-100" />
+                </div>
+                <div>
+                  <p className="text-xl font-bold">{weather.wind.speed} <span className="text-sm font-normal">m/s</span></p>
+                  <p className="text-xs text-blue-200 uppercase tracking-wider">Wind Speed</p>
+                </div>
+              </div>
+
+            </div>
           </div>
         ) : (
-          <p className="text-sm">Detecting location & loading weather...</p>
+          <div className="flex flex-col items-center justify-center py-8 opacity-80">
+            <Cloud className="w-10 h-10 mb-2 animate-pulse" />
+            <p className="text-sm font-medium">Analyzing local weather...</p>
+          </div>
         )}
       </Card>
 
