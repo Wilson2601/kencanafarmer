@@ -10,7 +10,7 @@ export function Dashboard({ onGoToReminders, onGoToCrops }: { onGoToReminders?: 
   const API_KEY = "d2230d5acc31c0fb701054e7cfb70fb4"; // Your OpenWeatherMap API Key
 
   function getWeatherIcon(iconCode: string) {
-    return `https://openweathermap.org/img/wn/${iconCode}@2x.png`;
+  return `https://openweathermap.org/img/wn/${iconCode}@2x.png`;
   }
 
   // Get real-time weather and 5-day forecast
@@ -124,7 +124,7 @@ export function Dashboard({ onGoToReminders, onGoToCrops }: { onGoToReminders?: 
         </button>
       </div>
 
-      {/* Today's Tasks */}
+      {/* Today's Tasks (sourced from shared tasks store) */}
       <div className="mb-6">
         <h2 className="text-green-800 mb-3">Today's Tasks</h2>
         <div className="space-y-3">
@@ -168,36 +168,57 @@ export function Dashboard({ onGoToReminders, onGoToCrops }: { onGoToReminders?: 
         </div>
       </div>
 
-      {/* Weather Widget - Current (Agricultural View) */}
-      <Card className="p-6 bg-gradient-to-br from-blue-600 to-blue-500 text-white mb-4 shadow-lg rounded-2xl">
+      {/* Weather Widget - Current */}
+      <Card className="p-4 bg-gradient-to-br from-blue-500 to-blue-600 text-white mb-4">
         {weather ? (
-          <div>
-            {/* Top Row: Location, Temp, Icon */}
-            <div className="flex items-start justify-between mb-6">
-              <div>
-                <div className="flex items-center gap-2 mb-1">
-                  <h3 className="text-blue-100 font-medium">{weather.name}</h3>
-                </div>
-                <h1 className="text-5xl font-bold mb-1">{Math.round(weather.main.temp)}°C</h1>
-                <p className="text-blue-100 capitalize font-medium">
-                  {weather.weather[0].description}
-                </p>
-              </div>
-              {/* Large Icon */}
-              <div className="bg-white/10 p-3 rounded-full backdrop-blur-sm">
-                <img
-                  src={getWeatherIcon(weather.weather[0].icon)}
-                  alt={weather.weather[0].description}
-                  className="w-16 h-16"
-                />
-              </div>
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm opacity-90">{weather.name}</p>
+              <p className="text-3xl font-bold mt-1">{Math.round(weather.main.temp)}°C</p>
+              <p className="text-xs opacity-80 mt-2">
+                {weather.weather[0].description}
+              </p>
             </div>
+            <img
+              src={getWeatherIcon(weather.weather[0].icon)}
+              alt={weather.weather[0].description}
+              className="w-20 h-20"
+            />
+          </div>
+        ) : (
+          <p className="text-sm">Detecting location & loading weather...</p>
+        )}
+      </Card>
 
-            {/* Divider */}
-            <div className="h-px bg-blue-400/30 w-full mb-6"></div>
-
-            {/* Bottom Row: Farming Metrics Grid */}
-            <div className="grid grid-cols-2 gap-4">
-              
-              {/* Humidity - Important for fungus/disease */}
-              <div className="flex items-center gap-3 bg-blue-700/20 p-3 rounded-xl border border-blue-400/20">
+      {/* Weather Forecast - Next 5 Days */}
+      {forecast.length > 0 && (
+        <Card className="p-4 bg-white">
+          <h3 className="text-green-800 font-semibold mb-3">5-Day Forecast</h3>
+          <div className="flex gap-2 overflow-x-auto pb-2">
+            {forecast.map((day, idx) => (
+              <div
+                key={idx}
+                className="flex-shrink-0 flex flex-col items-center justify-center gap-2 p-3 bg-white rounded-lg border border-blue-300 min-w-[85px]"
+              >
+                <p className="text-xs font-semibold text-blue-900 text-center">{day.date}</p>
+                <img
+                  src={getWeatherIcon(day.icon)}
+                  alt={day.description}
+                  className="w-8 h-8"
+                />
+                <p className="text-sm font-bold text-blue-900">{day.temp}°C</p>
+                <p className="text-xs text-blue-600 text-center">
+                  {day.tempMin}° ~ {day.tempMax}°
+                </p>
+                <div className="flex items-center gap-0.5 text-xs text-blue-600 justify-center">
+                  <Wind className="w-3 h-3" />
+                  <span>{day.windSpeed}m/s</span>
+                </div>
+              </div>
+            ))}
+          </div>
+        </Card>
+      )}
+    </div>
+  );
+}
