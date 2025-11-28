@@ -9,10 +9,9 @@ export function Dashboard({ onGoToReminders, onGoToCrops }: { onGoToReminders?: 
   const [forecast, setForecast] = useState<any[]>([]);
 
   // SAFE API KEY RESOLVE: don't reference `process` unless it exists.
-  // - For Next.js: use NEXT_PUBLIC_OWM_KEY
-  // - For Vite: use import.meta.env.VITE_OWM_KEY
-  // This avoids "process is not defined" in browser-only environments.
-  const apiFromProcess = typeof process !== "undefined" && process?.env ? (process.env.NEXT_PUBLIC_OWM_KEY as string | undefined) : undefined;
+  // For Vite use: import.meta.env.VITE_OWM_KEY
+  // For Next use: process.env.NEXT_PUBLIC_OWM_KEY
+  const apiFromProcess = typeof process !== "undefined" && (process as any).env ? (process as any).env?.NEXT_PUBLIC_OWM_KEY : undefined;
   const apiFromImportMeta =
     typeof import.meta !== "undefined" && (import.meta as any).env ? (import.meta as any).env?.VITE_OWM_KEY : undefined;
   const API_KEY = apiFromProcess ?? apiFromImportMeta ?? "";
@@ -21,9 +20,9 @@ export function Dashboard({ onGoToReminders, onGoToCrops }: { onGoToReminders?: 
     return `https://openweathermap.org/img/wn/${iconCode}@2x.png`;
   }
 
-  // Get real-time weather and 5-day forecast
   useEffect(() => {
     if (!API_KEY) {
+      // No key — warn but do not crash
       console.warn(
         "OpenWeatherMap API key is missing. Set NEXT_PUBLIC_OWM_KEY (Next) or VITE_OWM_KEY (Vite) in your environment."
       );
@@ -36,20 +35,17 @@ export function Dashboard({ onGoToReminders, onGoToCrops }: { onGoToReminders?: 
         const lon = pos.coords.longitude;
 
         try {
-          // Current weather
           const weatherRes = await fetch(
             `https://api.openweathermap.org/data/2.5/weather?lat=${lat}&lon=${lon}&appid=${API_KEY}&units=metric`
           );
           const weatherData = await weatherRes.json();
           setWeather(weatherData);
 
-          // 5-day forecast
           const forecastRes = await fetch(
             `https://api.openweathermap.org/data/2.5/forecast?lat=${lat}&lon=${lon}&appid=${API_KEY}&units=metric`
           );
           const forecastData = await forecastRes.json();
 
-          // Get one forecast per day (every 24 hours)
           const dailyForecasts: any[] = [];
           const seenDates = new Set<string>();
 
@@ -88,6 +84,7 @@ export function Dashboard({ onGoToReminders, onGoToCrops }: { onGoToReminders?: 
     day: "numeric",
   });
 
+  // Defensive hooks usage — don't assume hooks return objects
   const tasksResult = useTasks();
   const cropsResult = useCrops();
   const safeTasks = tasksResult?.tasks ?? [];
@@ -104,11 +101,7 @@ export function Dashboard({ onGoToReminders, onGoToCrops }: { onGoToReminders?: 
 
       {/* Quick Stats */}
       <div className="grid grid-cols-2 gap-3 mb-6">
-        <button
-          onClick={onGoToCrops}
-          style={{ background: "none", border: "none", padding: 0 }}
-          className="text-left"
-        >
+        <button onClick={onGoToCrops} style={{ background: "none", border: "none", padding: 0 }} className="text-left">
           <Card className="p-4 bg-white border-green-200 hover:bg-green-50 cursor-pointer transition">
             <div className="flex items-center gap-3">
               <div className="bg-green-100 p-3 rounded-full">
@@ -122,11 +115,7 @@ export function Dashboard({ onGoToReminders, onGoToCrops }: { onGoToReminders?: 
           </Card>
         </button>
 
-        <button
-          onClick={onGoToReminders}
-          style={{ background: "none", border: "none", padding: 0 }}
-          className="text-left"
-        >
+        <button onClick={onGoToReminders} style={{ background: "none", border: "none", padding: 0 }} className="text-left">
           <Card className="p-4 bg-white border-orange-200 hover:bg-orange-50 cursor-pointer transition">
             <div className="flex items-center gap-3">
               <div className="bg-orange-100 p-3 rounded-full">
@@ -151,34 +140,15 @@ export function Dashboard({ onGoToReminders, onGoToCrops }: { onGoToReminders?: 
             </Card>
           ) : (
             activeTasks.map((task: any) => (
-              <button
-                key={task.id}
-                className="w-full text-left"
-                onClick={onGoToReminders}
-                style={{ background: "none", border: "none", padding: 0 }}
-              >
+              <button key={task.id} className="w-full text-left" onClick={onGoToReminders} style={{ background: "none", border: "none", padding: 0 }}>
                 <Card className="p-4 bg-white hover:bg-green-50 cursor-pointer transition">
                   <div className="flex items-start gap-3">
                     <div
                       className={`p-2 rounded-lg mt-1 ${
-                        task.type === "water"
-                          ? "bg-blue-100"
-                          : task.type === "prune"
-                          ? "bg-purple-100"
-                          : task.type === "fertilize"
-                          ? "bg-green-100"
-                          : "bg-orange-100"
+                        task.type === "water" ? "bg-blue-100" : task.type === "prune" ? "bg-purple-100" : task.type === "fertilize" ? "bg-green-100" : "bg-orange-100"
                       }`}
                     >
-                      {task.type === "water" ? (
-                        <Droplet className="w-5 h-5 text-blue-600" />
-                      ) : task.type === "prune" ? (
-                        <TrendingDown className="w-5 h-5 text-purple-600" />
-                      ) : task.type === "fertilize" ? (
-                        <Apple className="w-5 h-5 text-green-600" />
-                      ) : (
-                        <TrendingUp className="w-5 h-5 text-orange-600" />
-                      )}
+                      {task.type === "water" ? <Droplet className="w-5 h-5 text-blue-600" /> : task.type === "prune" ? <TrendingDown className="w-5 h-5 text-purple-600" /> : task.type === "fertilize" ? <Apple className="w-5 h-5 text-green-600" /> : <TrendingUp className="w-5 h-5 text-orange-600" />}
                     </div>
                     <div className="flex-1">
                       <p className="text-green-900">{task.title}</p>
@@ -195,11 +165,10 @@ export function Dashboard({ onGoToReminders, onGoToCrops }: { onGoToReminders?: 
         </div>
       </div>
 
-      {/* Weather Widget - Current (Agricultural View) */}
+      {/* Weather Widget */}
       <Card className="p-6 bg-gradient-to-br from-blue-600 to-blue-500 text-white mb-4 shadow-lg rounded-2xl">
         {weather ? (
           <div>
-            {/* Top Row: Location, Temp, Icon */}
             <div className="flex items-start justify-between mb-6">
               <div>
                 <div className="flex items-center gap-2 mb-1">
@@ -208,18 +177,14 @@ export function Dashboard({ onGoToReminders, onGoToCrops }: { onGoToReminders?: 
                 <h1 className="text-5xl font-bold mb-1">{Math.round(weather.main.temp)}°C</h1>
                 <p className="text-blue-100 capitalize font-medium">{weather.weather[0].description}</p>
               </div>
-              {/* Large Icon */}
               <div className="bg-white/10 p-3 rounded-full backdrop-blur-sm">
                 <img src={getWeatherIcon(weather.weather[0].icon)} alt={weather.weather[0].description} className="w-16 h-16" />
               </div>
             </div>
 
-            {/* Divider */}
             <div className="h-px bg-blue-400/30 w-full mb-6"></div>
 
-            {/* Bottom Row: Farming Metrics Grid */}
             <div className="grid grid-cols-2 gap-4">
-              {/* Humidity */}
               <div className="flex items-center gap-3 bg-blue-700/20 p-3 rounded-xl border border-blue-400/20">
                 <div className="bg-blue-100/20 p-2 rounded-lg">
                   <Droplet className="w-5 h-5 text-blue-100" />
@@ -230,7 +195,6 @@ export function Dashboard({ onGoToReminders, onGoToCrops }: { onGoToReminders?: 
                 </div>
               </div>
 
-              {/* Wind Speed */}
               <div className="flex items-center gap-3 bg-blue-700/20 p-3 rounded-xl border border-blue-400/20">
                 <div className="bg-blue-100/20 p-2 rounded-lg">
                   <Wind className="w-5 h-5 text-blue-100" />
@@ -252,7 +216,7 @@ export function Dashboard({ onGoToReminders, onGoToCrops }: { onGoToReminders?: 
         )}
       </Card>
 
-      {/* Weather Forecast - Next 5 Days */}
+      {/* Forecast */}
       {forecast.length > 0 && (
         <Card className="p-4 bg-white">
           <h3 className="text-green-800 font-semibold mb-3">5-Day Forecast</h3>
