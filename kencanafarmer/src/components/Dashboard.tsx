@@ -7,11 +7,15 @@ import { useCrops } from "../hooks/useCrops";
 export function Dashboard({ onGoToReminders, onGoToCrops }: { onGoToReminders?: () => void; onGoToCrops?: () => void }) {
   const [weather, setWeather] = useState<any>(null);
   const [forecast, setForecast] = useState<any[]>([]);
-  // Read API key from environment variables (support NEXT_PUBLIC_ and VITE_ prefixes).
-  const API_KEY =
-    process.env.NEXT_PUBLIC_OWM_KEY ??
-    (typeof import.meta !== "undefined" ? (import.meta as any).env?.VITE_OWM_KEY : undefined) ??
-    "";
+
+  // SAFE API KEY RESOLVE: don't reference `process` unless it exists.
+  // - For Next.js: use NEXT_PUBLIC_OWM_KEY
+  // - For Vite: use import.meta.env.VITE_OWM_KEY
+  // This avoids "process is not defined" in browser-only environments.
+  const apiFromProcess = typeof process !== "undefined" && process?.env ? (process.env.NEXT_PUBLIC_OWM_KEY as string | undefined) : undefined;
+  const apiFromImportMeta =
+    typeof import.meta !== "undefined" && (import.meta as any).env ? (import.meta as any).env?.VITE_OWM_KEY : undefined;
+  const API_KEY = apiFromProcess ?? apiFromImportMeta ?? "";
 
   function getWeatherIcon(iconCode: string) {
     return `https://openweathermap.org/img/wn/${iconCode}@2x.png`;
@@ -20,7 +24,9 @@ export function Dashboard({ onGoToReminders, onGoToCrops }: { onGoToReminders?: 
   // Get real-time weather and 5-day forecast
   useEffect(() => {
     if (!API_KEY) {
-      console.warn("OpenWeatherMap API key is missing. Set NEXT_PUBLIC_OWM_KEY or VITE_OWM_KEY in your environment.");
+      console.warn(
+        "OpenWeatherMap API key is missing. Set NEXT_PUBLIC_OWM_KEY (Next) or VITE_OWM_KEY (Vite) in your environment."
+      );
       return;
     }
 
@@ -82,13 +88,11 @@ export function Dashboard({ onGoToReminders, onGoToCrops }: { onGoToReminders?: 
     day: "numeric",
   });
 
-  const { tasks } = useTasks();
-  const { crops } = useCrops();
-
-  // Safety check for tasks and crops
-  const safeTasks = tasks || [];
-  const activeTasks = safeTasks.filter((t) => !t.completed);
-  const safeCrops = crops || [];
+  const tasksResult = useTasks();
+  const cropsResult = useCrops();
+  const safeTasks = tasksResult?.tasks ?? [];
+  const activeTasks = safeTasks.filter((t: any) => !t.completed);
+  const safeCrops = cropsResult?.crops ?? [];
 
   return (
     <div className="p-4 pb-24 bg-green-50 min-h-screen">
@@ -146,7 +150,7 @@ export function Dashboard({ onGoToReminders, onGoToCrops }: { onGoToReminders?: 
               <div className="text-sm text-green-600">No tasks for today.</div>
             </Card>
           ) : (
-            activeTasks.map((task) => (
+            activeTasks.map((task: any) => (
               <button
                 key={task.id}
                 className="w-full text-left"
