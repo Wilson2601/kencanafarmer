@@ -1,20 +1,31 @@
 import { useState } from 'react';
-// 1. Import the Context Providers (The "Global Databases")
+
+// Contexts
 import { TaskProvider } from './contexts/TaskContext';
 import { CropProvider } from './contexts/CropContext';
 
+// Components
+import Login from './components/Login'; 
 import { Dashboard } from './components/Dashboard';
 import { CropManagement } from './components/CropManagement';
 import { Reminders } from './components/Reminders';
 import { GrowthMonitoring } from './components/GrowthMonitoring';
 import { HarvestPrediction } from './components/HarvestPrediction';
-import { Settings } from './components/Settings';
+import Settings from './components/Settings'; // ✅ Fixed: Uncommented and using default import
+
 import { Home, Sprout, Bell, TrendingUp, Calendar, Settings as SettingsIcon } from 'lucide-react';
 
 type Page = 'dashboard' | 'crops' | 'reminders' | 'growth' | 'harvest' | 'settings';
 
 export default function App() {
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [currentPage, setCurrentPage] = useState<Page>('dashboard');
+
+  // ✅ New: Handle Logout Logic
+  const handleLogout = () => {
+    setIsLoggedIn(false); // Go back to login screen
+    setCurrentPage('dashboard'); // Reset page to dashboard for next time
+  };
 
   const renderPage = () => {
     switch (currentPage) {
@@ -29,7 +40,8 @@ export default function App() {
       case 'harvest':
         return <HarvestPrediction />;
       case 'settings':
-        return <Settings />;
+        // ✅ Fixed: Rendering actual Settings component with logout prop
+        return <Settings onLogout={handleLogout} />;
       default:
         return <Dashboard />;
     }
@@ -44,17 +56,21 @@ export default function App() {
     { id: 'settings' as Page, icon: SettingsIcon, label: 'Settings' },
   ];
 
+  // 1. LOGIN CHECK
+  if (!isLoggedIn) {
+    return <Login onLogin={() => setIsLoggedIn(true)} />;
+  }
+
+  // 2. MAIN APP
   return (
-    // 2. Wrap everything with the Providers
-    // Now, every component inside here can access the data!
     <TaskProvider>
       <CropProvider>
         <div className="min-h-screen bg-green-50">
-          <main className="max-w-md mx-auto bg-white shadow-xl min-h-screen relative">
+          <main className="max-w-md mx-auto bg-white shadow-xl min-h-screen relative pb-20">
             
             {renderPage()}
 
-            <nav className="fixed bottom-0 left-0 right-0 max-w-md mx-auto bg-white border-t border-green-200 shadow-lg">
+            <nav className="fixed bottom-0 left-0 right-0 max-w-md mx-auto bg-white border-t border-green-200 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.05)] z-50">
               <div className="grid grid-cols-6 gap-1 p-2">
                 {navItems.map((item) => {
                   const Icon = item.icon;
@@ -67,8 +83,8 @@ export default function App() {
                         isActive ? 'bg-green-100 text-green-700' : 'text-green-600 hover:bg-green-50'
                       }`}
                     >
-                      <Icon size={20} />
-                      <span className="text-xs">{item.label}</span>
+                      <Icon size={20} className={isActive ? 'fill-current' : ''} />
+                      <span className="text-[10px] font-medium mt-1">{item.label}</span>
                     </button>
                   );
                 })}
